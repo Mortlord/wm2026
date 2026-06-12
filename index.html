@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>WM 2026 - Live Tabellen & Spiele</title>
+<title>WC 2026 - Live Tables & Matches</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap');
   * { box-sizing: border-box; }
@@ -299,23 +299,23 @@
     <div class="crest">26</div>
     <div>
       <div class="kicker">WM 2026 · USA · KANADA · MEXIKO</div>
-      <h1>Live Tabellen &amp; Spiele</h1>
+      <h1>Live Tables &amp; Matches</h1>
       <div class="status" id="status"></div>
     </div>
   </div>
 </header>
 
 <div class="top-tabs">
-  <button class="top-tab active" id="tabGroups">Gruppenphase</button>
-  <button class="top-tab" id="tabNext">Nächste Spiele</button>
-  <button class="top-tab" id="tabKO">K.o.-Runde</button>
+  <button class="top-tab active" id="tabGroups">Group Stage</button>
+  <button class="top-tab" id="tabNext">Next Matches</button>
+  <button class="top-tab" id="tabKO">Knockout Stage</button>
 </div>
 
 <div id="groupNav" class="group-nav"></div>
 
 <main id="mainContent"></main>
 
-<footer>Daten via football-data.org. Aktualisiert sich automatisch alle paar Minuten.</footer>
+<footer>Data via football-data.org. Refreshes automatically every few minutes.</footer>
 
 <script>
   // ---- Konfiguration ----
@@ -337,25 +337,25 @@
   function formatUpdatedAt(iso) {
     if (!iso) return '';
     const d = new Date(iso);
-    return d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
 
   async function loadData() {
     try {
       const res = await fetch(API_BASE + '/api/data');
-      if (!res.ok) throw new Error('Server-Fehler ' + res.status);
+      if (!res.ok) throw new Error('Server error ' + res.status);
       const data = await res.json();
       cache = data;
 
       if (data.error && !data.standings) {
         setStatus(data.error, 'error');
       } else if (data.error) {
-        setStatus('Letztes Update: ' + formatUpdatedAt(data.updatedAt) + ' (aktuelles Update fehlgeschlagen)', 'error');
+        setStatus('Last update: ' + formatUpdatedAt(data.updatedAt) + ' (latest refresh failed)', 'error');
       } else {
-        setStatus('Letztes Update: ' + formatUpdatedAt(data.updatedAt));
+        setStatus('Last update: ' + formatUpdatedAt(data.updatedAt));
       }
     } catch (e) {
-      setStatus('Keine Verbindung zum Server.', 'error');
+      setStatus('Unable to connect to the server.', 'error');
     }
     renderAll();
   }
@@ -368,7 +368,7 @@
   }
 
   function getGroupStandings() {
-    // football-data.org liefert standings als Array, ein Eintrag pro Gruppe
+    // football-data.org returns standings as an array, one entry per group
     // jedes Element hat { stage, type, group, table }, group z.B. "Group A"
     if (!cache.standings) return [];
     return cache.standings.filter((s) => s.type === 'TOTAL' && s.group);
@@ -391,10 +391,10 @@
     return cache.matches.filter((m) => m.stage !== 'GROUP_STAGE');
   }
 
-  // Liefert die naechsten n Spiele (noch nicht beendet), ueber alle
-  // Gruppen und Stages hinweg, sortiert nach Anstosszeit. Laufende
-  // Spiele (LIVE/IN_PLAY/PAUSED) werden vorrangig gezeigt, danach
-  // die naechsten TIMED/SCHEDULED Spiele.
+  // Returns the next n matches (not yet finished), across all groups
+  // and stages, sorted by kickoff time. Live matches
+  // (LIVE/IN_PLAY/PAUSED) are shown first, followed by
+  // the next TIMED/SCHEDULED matches.
   function getNextMatches(n) {
     if (!cache.matches) return [];
 
@@ -410,13 +410,13 @@
   }
 
   const STAGE_LABELS = {
-    LAST_32: 'Achtelfinale-Runde (Round of 32)',
-    LAST_16: 'Achtelfinale',
-    ROUND_OF_16: 'Achtelfinale',
-    QUARTER_FINALS: 'Viertelfinale',
-    SEMI_FINALS: 'Halbfinale',
-    THIRD_PLACE: 'Spiel um Platz 3',
-    FINAL: 'Finale',
+    LAST_32: 'Round of 32',
+    LAST_16: 'Round of 16',
+    ROUND_OF_16: 'Round of 16',
+    QUARTER_FINALS: 'Quarter-Finals',
+    SEMI_FINALS: 'Semi-Finals',
+    THIRD_PLACE: 'Third Place Play-off',
+    FINAL: 'Final',
   };
 
   const STAGE_ORDER = [
@@ -445,7 +445,7 @@
 
   function formatDate(iso) {
     const d = new Date(iso);
-    return d.toLocaleString('de-DE', {
+    return d.toLocaleString('en-GB', {
       weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     });
   }
@@ -456,7 +456,7 @@
       return '<span class="status-badge live">LIVE</span>';
     }
     if (s === 'FINISHED') {
-      return '<span class="status-badge finished">Beendet</span>';
+      return '<span class="status-badge finished">Finished</span>';
     }
     return '<span class="status-badge upcoming">' + formatDate(match.utcDate) + '</span>';
   }
@@ -514,7 +514,7 @@
     const groups = getGroupStandings();
 
     if (!groups.length) {
-      main.innerHTML = '<div class="empty-state">Noch keine Tabellendaten verfuegbar.<br/>Sobald die Gruppenphase beginnt, erscheinen hier die Tabellen automatisch.</div>';
+      main.innerHTML = '<div class="empty-state">No table data available yet.<br/>Once the group stage begins, tables will appear here automatically.</div>';
       return;
     }
 
@@ -523,9 +523,9 @@
     const grp = groups.find((g) => g.group === current.label) || groups[0];
     const groupLabel = grp.group.replace(/^Group\s+/i, '');
 
-    let html = '<h2 class="section-title">Tabelle Gruppe ' + groupLabel + '</h2>';
+    let html = '<h2 class="section-title">Group ' + groupLabel + ' Table</h2>';
     html += '<div class="table-wrap"><table><thead><tr>';
-    html += '<th class="left">#</th><th class="left">Team</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th class="pts-col">Pkt</th>';
+    html += '<th class="left">#</th><th class="left">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Goals</th><th>Diff</th><th class="pts-col">Pts</th>';
     html += '</tr></thead><tbody>';
 
     grp.table.forEach((row, i) => {
@@ -545,13 +545,13 @@
       html += '</tr>';
     });
     html += '</tbody></table></div>';
-    html += '<p class="legend"><span class="legend-dot"></span> Platz 1-2 -> Achtelfinale-Runde (Round of 32)</p>';
+    html += '<p class="legend"><span class="legend-dot"></span> Positions 1-2 advance to the Round of 32</p>';
 
     const matches = getGroupStageMatchesForGroup(activeGroup);
-    html += '<h2 class="section-title">Spiele Gruppe ' + groupLabel + '</h2>';
+    html += '<h2 class="section-title">Group ' + groupLabel + ' Matches</h2>';
 
     if (!matches.length) {
-      html += '<div class="empty-state">Noch keine Spieltermine verfuegbar.</div>';
+      html += '<div class="empty-state">No match schedule available yet.</div>';
     } else {
       matches.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
       html += '<div class="match-list">';
@@ -575,14 +575,14 @@
     const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
     const minutes = totalMinutes % 60;
 
-    if (days > 0) return 'in ' + days + ' Tag' + (days === 1 ? '' : 'en') + ' ' + hours + ' Std';
-    if (hours > 0) return 'in ' + hours + ' Std ' + minutes + ' Min';
-    return 'in ' + minutes + ' Min';
+    if (days > 0) return 'in ' + days + ' day' + (days === 1 ? '' : 's') + ' ' + hours + ' hr';
+    if (hours > 0) return 'in ' + hours + ' hr ' + minutes + ' min';
+    return 'in ' + minutes + ' min';
   }
 
   function groupLabelForMatch(m) {
     if (m.stage === 'GROUP_STAGE' && m.group) {
-      return m.group.replace('GROUP_', 'Gruppe ');
+      return m.group.replace('GROUP_', 'Group ');
     }
     return STAGE_LABELS[m.stage] || m.stage;
   }
@@ -620,11 +620,11 @@
     const matches = getNextMatches(3);
 
     if (!matches.length) {
-      main.innerHTML = '<div class="empty-state">Keine anstehenden Spiele gefunden.</div>';
+      main.innerHTML = '<div class="empty-state">No upcoming matches found.</div>';
       return;
     }
 
-    let html = '<h2 class="section-title">Nächste Spiele</h2>';
+    let html = '<h2 class="section-title">Next Matches</h2>';
     html += '<div class="match-list">';
     matches.forEach((m) => {
       html += renderMatchRow(m, { highlight: true, showGroup: true });
@@ -639,7 +639,7 @@
     const matches = getKnockoutMatches();
 
     if (!matches.length) {
-      main.innerHTML = '<div class="empty-state">Die K.o.-Runde steht noch nicht fest.<br/>Sobald die Gruppenphase abgeschlossen ist und der Bracket feststeht, erscheinen hier automatisch alle Paarungen.</div>';
+      main.innerHTML = '<div class="empty-state">The knockout stage is not yet determined.<br/>Once the group stage is complete and the bracket is set, all matchups will appear here automatically.</div>';
       return;
     }
 
