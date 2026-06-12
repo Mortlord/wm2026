@@ -305,7 +305,7 @@
 
   let cache = { standings: null, matches: null, updatedAt: null, error: null };
   let view = 'groups'; // 'groups' | 'ko'
-  let activeGroup = null;
+  let activeGroup = null; // z.B. "GROUP_A"
 
   function setStatus(text, kind) {
     const el = document.getElementById('status');
@@ -341,22 +341,28 @@
 
   // ---- Hilfsfunktionen ----
 
+  // Wandelt "Group A" (aus standings) in "GROUP_A" (wie in matches.group) um
+  function standingsGroupToMatchGroup(label) {
+    return 'GROUP_' + label.replace(/^Group\s+/i, '').trim();
+  }
+
   function getGroupStandings() {
     // football-data.org liefert standings als Array, ein Eintrag pro Gruppe
-    // jedes Element hat { stage, type, group, table }
+    // jedes Element hat { stage, type, group, table }, group z.B. "Group A"
     if (!cache.standings) return [];
     return cache.standings.filter((s) => s.type === 'TOTAL' && s.group);
   }
 
-  function getGroupNames() {
+  // Liefert Liste von { label: "Group A", matchKey: "GROUP_A" }
+  function getGroupList() {
     return getGroupStandings()
-      .map((s) => s.group)
-      .sort();
+      .map((s) => ({ label: s.group, matchKey: standingsGroupToMatchGroup(s.group) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  function getGroupStageMatchesForGroup(groupName) {
+  function getGroupStageMatchesForGroup(matchKey) {
     if (!cache.matches) return [];
-    return cache.matches.filter((m) => m.stage === 'GROUP_STAGE' && m.group === groupName);
+    return cache.matches.filter((m) => m.stage === 'GROUP_STAGE' && m.group === matchKey);
   }
 
   function getKnockoutMatches() {
@@ -365,6 +371,7 @@
   }
 
   const STAGE_LABELS = {
+    LAST_32: 'Achtelfinale-Runde (Round of 32)',
     LAST_16: 'Achtelfinale',
     ROUND_OF_16: 'Achtelfinale',
     QUARTER_FINALS: 'Viertelfinale',
@@ -374,7 +381,7 @@
   };
 
   const STAGE_ORDER = [
-    'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL',
+    'LAST_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL',
   ];
 
   function groupByStage(matches) {
@@ -428,7 +435,7 @@
   }
 
   function teamName(team) {
-    if (!team) return 'TBD';
+    if (!team || !team.name) return 'TBD';
     return team.shortName || team.name || 'TBD';
   }
 
@@ -436,7 +443,7 @@
 
   function renderGroupNav() {
     const nav = document.getElementById('groupNav');
-    const groups = getGroupNames();
+    const groups = getGroupList(); // [{label, matchKey}]
 
     if (view !== 'groups' || !groups.length) {
       nav.style.display = 'none';
@@ -445,17 +452,18 @@
     nav.style.display = 'flex';
     nav.innerHTML = '';
 
-    if (!activeGroup || !groups.includes(activeGroup)) {
-      activeGroup = groups[0];
+    const matchKeys = groups.map((g) => g.matchKey);
+    if (!activeGroup || !matchKeys.includes(activeGroup)) {
+      activeGroup = groups[0].matchKey;
     }
 
     groups.forEach((g) => {
-      const label = g.replace('GROUP_', '');
+      const shortLabel = g.label.replace(/^Group\s+/i, '');
       const btn = document.createElement('button');
-      btn.className = 'grp-btn' + (g === activeGroup ? ' active' : '');
-      btn.textContent = label;
+      btn.className = 'grp-btn' + (g.matchKey === activeGroup ? ' active' : '');
+      btn.textContent = shortLabel;
       btn.addEventListener('click', () => {
-        activeGroup = g;
+        activeGroup = g.matchKey;
         renderAll();
       });
       nav.appendChild(btn);
@@ -471,8 +479,10 @@
       return;
     }
 
-    const grp = groups.find((g) => g.group === activeGroup) || groups[0];
-    const groupLabel = grp.group.replace('GROUP_', '');
+    const groupList = getGroupList();
+    const current = groupList.find((g) => g.matchKey === activeGroup) || groupList[0];
+    const grp = groups.find((g) => g.group === current.label) || groups[0];
+    const groupLabel = grp.group.replace(/^Group\s+/i, '');
 
     let html = '<h2 class="section-title">Tabelle Gruppe ' + groupLabel + '</h2>';
     html += '<div class="table-wrap"><table><thead><tr>';
