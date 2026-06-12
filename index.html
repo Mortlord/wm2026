@@ -244,6 +244,26 @@
     background: transparent;
     color: #5A6B62;
   }
+  .next-match-row {
+    position: relative;
+    overflow: hidden;
+  }
+  .next-match-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #00A859;
+  }
+  .next-match-countdown {
+    font-size: 10px;
+    font-weight: 700;
+    color: #00A859;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
   .ko-round-group {
     margin-bottom: 18px;
   }
@@ -287,6 +307,7 @@
 
 <div class="top-tabs">
   <button class="top-tab active" id="tabGroups">Gruppenphase</button>
+  <button class="top-tab" id="tabNext">Nächste Spiele</button>
   <button class="top-tab" id="tabKO">K.o.-Runde</button>
 </div>
 
@@ -304,7 +325,7 @@
   const REFRESH_MS = 60 * 1000; // App fragt den Cache-Server jede Minute neu ab
 
   let cache = { standings: null, matches: null, updatedAt: null, error: null };
-  let view = 'groups'; // 'groups' | 'ko'
+  let view = 'groups'; // 'groups' | 'next' | 'ko'
   let activeGroup = null; // z.B. "GROUP_A"
 
   function setStatus(text, kind) {
@@ -368,6 +389,24 @@
   function getKnockoutMatches() {
     if (!cache.matches) return [];
     return cache.matches.filter((m) => m.stage !== 'GROUP_STAGE');
+  }
+
+  // Liefert die naechsten n Spiele (noch nicht beendet), ueber alle
+  // Gruppen und Stages hinweg, sortiert nach Anstosszeit. Laufende
+  // Spiele (LIVE/IN_PLAY/PAUSED) werden vorrangig gezeigt, danach
+  // die naechsten TIMED/SCHEDULED Spiele.
+  function getNextMatches(n) {
+    if (!cache.matches) return [];
+
+    const live = cache.matches.filter((m) =>
+      ['IN_PLAY', 'PAUSED', 'LIVE'].includes(m.status)
+    );
+
+    const upcoming = cache.matches
+      .filter((m) => ['TIMED', 'SCHEDULED'].includes(m.status) && m.utcDate)
+      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+    return [...live, ...upcoming].slice(0, n);
   }
 
   const STAGE_LABELS = {
@@ -525,14 +564,74 @@
     main.innerHTML = html;
   }
 
-  function renderMatchRow(m) {
-    let html = '<div class="match-row">';
-    html += '<div class="match-meta"><span>' + formatDate(m.utcDate) + '</span>' + statusBadge(m) + '</div>';
+  function formatCountdown(iso) {
+    const now = new Date();
+    const target = new Date(iso);
+    const diffMs = target - now;
+    if (diffMs <= 0) return null;
+
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    if (days > 0) return 'in ' + days + ' Tag' + (days === 1 ? '' : 'en') + ' ' + hours + ' Std';
+    if (hours > 0) return 'in ' + hours + ' Std ' + minutes + ' Min';
+    return 'in ' + minutes + ' Min';
+  }
+
+  function groupLabelForMatch(m) {
+    if (m.stage === 'GROUP_STAGE' && m.group) {
+      return m.group.replace('GROUP_', 'Gruppe ');
+    }
+    return STAGE_LABELS[m.stage] || m.stage;
+  }
+
+  function renderMatchRow(m, options) {
+    options = options || {};
+    let html = '<div class="match-row' + (options.highlight ? ' next-match-row' : '') + '">';
+    html += '<div class="match-meta"><span>';
+    if (options.showGroup) {
+      html += groupLabelForMatch(m) + ' · ';
+    }
+    html += formatDate(m.utcDate) + '</span>';
+
+    if (options.highlight && ['TIMED', 'SCHEDULED'].includes(m.status)) {
+      const countdown = formatCountdown(m.utcDate);
+      if (countdown) {
+        html += '<span class="next-match-countdown">' + countdown + '</span>';
+      } else {
+        html += statusBadge(m);
+      }
+    } else {
+      html += statusBadge(m);
+    }
+    html += '</div>';
+
     html += '<span class="match-team">' + teamName(m.homeTeam) + '</span>';
     html += scoreDisplay(m);
     html += '<span class="match-team right">' + teamName(m.awayTeam) + '</span>';
     html += '</div>';
     return html;
+  }
+
+  function renderNextView() {
+    const main = document.getElementById('mainContent');
+    const matches = getNextMatches(3);
+
+    if (!matches.length) {
+      main.innerHTML = '<div class="empty-state">Keine anstehenden Spiele gefunden.</div>';
+      return;
+    }
+
+    let html = '<h2 class="section-title">Nächste Spiele</h2>';
+    html += '<div class="match-list">';
+    matches.forEach((m) => {
+      html += renderMatchRow(m, { highlight: true, showGroup: true });
+    });
+    html += '</div>';
+
+    main.innerHTML = html;
   }
 
   function renderKOView() {
@@ -563,12 +662,15 @@
 
   function renderAll() {
     document.getElementById('tabGroups').classList.toggle('active', view === 'groups');
+    document.getElementById('tabNext').classList.toggle('active', view === 'next');
     document.getElementById('tabKO').classList.toggle('active', view === 'ko');
 
     renderGroupNav();
 
     if (view === 'groups') {
       renderGroupsView();
+    } else if (view === 'next') {
+      renderNextView();
     } else {
       renderKOView();
     }
@@ -576,6 +678,10 @@
 
   document.getElementById('tabGroups').addEventListener('click', () => {
     view = 'groups';
+    renderAll();
+  });
+  document.getElementById('tabNext').addEventListener('click', () => {
+    view = 'next';
     renderAll();
   });
   document.getElementById('tabKO').addEventListener('click', () => {
