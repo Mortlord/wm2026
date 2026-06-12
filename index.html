@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WM 2026 - Live Tabellen & Spiele</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0E1A14;
+    color: #F4F1EA;
+    min-height: 100vh;
+    padding-bottom: 32px;
+  }
+  header {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid #1E2F26;
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .crest {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 22px;
+    background: #00A859;
+    color: #0E1A14;
+    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .kicker {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: #7FBFA0;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  h1 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 24px;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+  .status {
+    font-size: 11px;
+    color: #5A6B62;
+    margin-top: 2px;
+    min-height: 14px;
+  }
+  .status.error { color: #E07856; }
+
+  .top-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px 0;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .top-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #2A3D33;
+    background: #152620;
+    color: #F4F1EA;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .top-tab:active { transform: scale(0.98); }
+  .top-tab.active {
+    background: #00A859;
+    color: #0E1A14;
+    border-color: #00A859;
+  }
+
+  .group-nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 14px 20px;
+    max-width: 760px;
+    margin: 0 auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .grp-btn {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #2A3D33;
+    background: #152620;
+    color: #F4F1EA;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .grp-btn:active { transform: scale(0.95); }
+  .grp-btn.active {
+    background: #00A859;
+    color: #0E1A14;
+    border-color: #00A859;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 4px 20px;
+  }
+  .section-title {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7FBFA0;
+    font-weight: 700;
+    margin: 20px 0 10px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid #1E2F26;
+    border-radius: 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    padding: 10px 6px;
+    text-align: center;
+    color: #9AA0A6;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #1E2F26;
+  }
+  th.left, td.left { text-align: left; }
+  th:first-child, td:first-child { padding-left: 12px; }
+  td {
+    padding: 10px 6px;
+    text-align: center;
+    border-bottom: 1px solid #16241D;
+  }
+  .pts-col { color: #00A859; }
+  tr.qualified { background: rgba(0,168,89,0.07); }
+  tr { animation: slideIn 0.25s ease-out; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .legend {
+    font-size: 12px;
+    color: #7FBFA0;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(0,168,89,0.4);
+    display: inline-block;
+  }
+  .match-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .match-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    background: #152620;
+    border: 1px solid #1E2F26;
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .match-meta {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: #5A6B62;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .match-team {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .match-team.right { text-align: right; }
+  .score-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 16px;
+    justify-content: center;
+    min-width: 56px;
+  }
+  .score-box.pending {
+    font-size: 12px;
+    font-weight: 600;
+    color: #5A6B62;
+  }
+  .score-colon {
+    color: #7FBFA0;
+  }
+  .status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-badge.live {
+    background: #E07856;
+    color: #0E1A14;
+  }
+  .status-badge.finished {
+    background: #2A3D33;
+    color: #9AA0A6;
+  }
+  .status-badge.upcoming {
+    background: transparent;
+    color: #5A6B62;
+  }
+  .ko-round-group {
+    margin-bottom: 18px;
+  }
+  .ko-round-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #F4F1EA;
+    margin: 14px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1E2F26;
+  }
+  .empty-state {
+    text-align: center;
+    color: #5A6B62;
+    font-size: 13px;
+    padding: 32px 16px;
+    border: 1px dashed #2A3D33;
+    border-radius: 12px;
+  }
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: #5A6B62;
+    margin-top: 24px;
+    padding: 0 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="crest">26</div>
+    <div>
+      <div class="kicker">WM 2026 · USA · KANADA · MEXIKO</div>
+      <h1>Live Tabellen &amp; Spiele</h1>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+</header>
+
+<div class="top-tabs">
+  <button class="top-tab active" id="tabGroups">Gruppenphase</button>
+  <button class="top-tab" id="tabKO">K.o.-Runde</button>
+</div>
+
+<div id="groupNav" class="group-nav"></div>
+
+<main id="mainContent"></main>
+
+<footer>Daten via football-data.org. Aktualisiert sich automatisch alle paar Minuten.</footer>
+
+<script>
+  // ---- Konfiguration ----
+  // Hier die Railway-URL der Daten-API eintragen (ohne abschliessenden Slash)
+  const API_BASE = 'https://DEINE-RAILWAY-URL.up.railway.app';
+
+  const REFRESH_MS = 60 * 1000; // App fragt den Cache-Server jede Minute neu ab
+
+  let cache = { standings: null, matches: null, updatedAt: null, error: null };
+  let view = 'groups'; // 'groups' | 'ko'
+  let activeGroup = null;
+
+  function setStatus(text, kind) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function formatUpdatedAt(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch(API_BASE + '/api/data');
+      if (!res.ok) throw new Error('Server-Fehler ' + res.status);
+      const data = await res.json();
+      cache = data;
+
+      if (data.error && !data.standings) {
+        setStatus(data.error, 'error');
+      } else if (data.error) {
+        setStatus('Letztes Update: ' + formatUpdatedAt(data.updatedAt) + ' (aktuelles Update fehlgeschlagen)', 'error');
+      } else {
+        setStatus('Letztes Update: ' + formatUpdatedAt(data.updatedAt));
+      }
+    } catch (e) {
+      setStatus('Keine Verbindung zum Server.', 'error');
+    }
+    renderAll();
+  }
+
+  // ---- Hilfsfunktionen ----
+
+  function getGroupStandings() {
+    // football-data.org liefert standings als Array, ein Eintrag pro Gruppe
+    // jedes Element hat { stage, type, group, table }
+    if (!cache.standings) return [];
+    return cache.standings.filter((s) => s.type === 'TOTAL' && s.group);
+  }
+
+  function getGroupNames() {
+    return getGroupStandings()
+      .map((s) => s.group)
+      .sort();
+  }
+
+  function getGroupStageMatchesForGroup(groupName) {
+    if (!cache.matches) return [];
+    return cache.matches.filter((m) => m.stage === 'GROUP_STAGE' && m.group === groupName);
+  }
+
+  function getKnockoutMatches() {
+    if (!cache.matches) return [];
+    return cache.matches.filter((m) => m.stage !== 'GROUP_STAGE');
+  }
+
+  const STAGE_LABELS = {
+    LAST_16: 'Achtelfinale',
+    ROUND_OF_16: 'Achtelfinale',
+    QUARTER_FINALS: 'Viertelfinale',
+    SEMI_FINALS: 'Halbfinale',
+    THIRD_PLACE: 'Spiel um Platz 3',
+    FINAL: 'Finale',
+  };
+
+  const STAGE_ORDER = [
+    'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL',
+  ];
+
+  function groupByStage(matches) {
+    const map = {};
+    matches.forEach((m) => {
+      const stage = m.stage || 'UNBEKANNT';
+      if (!map[stage]) map[stage] = [];
+      map[stage].push(m);
+    });
+
+    const keys = Object.keys(map);
+    keys.sort((a, b) => {
+      const ai = STAGE_ORDER.indexOf(a);
+      const bi = STAGE_ORDER.indexOf(b);
+      const aa = ai === -1 ? 999 : ai;
+      const bb = bi === -1 ? 999 : bi;
+      return aa - bb;
+    });
+
+    return keys.map((k) => ({ stage: k, matches: map[k] }));
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString('de-DE', {
+      weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function statusBadge(match) {
+    const s = match.status;
+    if (s === 'IN_PLAY' || s === 'PAUSED' || s === 'LIVE') {
+      return '<span class="status-badge live">LIVE</span>';
+    }
+    if (s === 'FINISHED') {
+      return '<span class="status-badge finished">Beendet</span>';
+    }
+    return '<span class="status-badge upcoming">' + formatDate(match.utcDate) + '</span>';
+  }
+
+  function scoreDisplay(match) {
+    const s = match.status;
+    const finishedOrLive = ['IN_PLAY', 'PAUSED', 'LIVE', 'FINISHED'].includes(s);
+    if (finishedOrLive) {
+      const full = match.score && match.score.fullTime ? match.score.fullTime : { home: null, away: null };
+      const h = full.home === null || full.home === undefined ? '-' : full.home;
+      const a = full.away === null || full.away === undefined ? '-' : full.away;
+      return '<div class="score-box">' + h + '<span class="score-colon">:</span>' + a + '</div>';
+    }
+    return '<div class="score-box pending">vs</div>';
+  }
+
+  function teamName(team) {
+    if (!team) return 'TBD';
+    return team.shortName || team.name || 'TBD';
+  }
+
+  // ---- Rendering ----
+
+  function renderGroupNav() {
+    const nav = document.getElementById('groupNav');
+    const groups = getGroupNames();
+
+    if (view !== 'groups' || !groups.length) {
+      nav.style.display = 'none';
+      return;
+    }
+    nav.style.display = 'flex';
+    nav.innerHTML = '';
+
+    if (!activeGroup || !groups.includes(activeGroup)) {
+      activeGroup = groups[0];
+    }
+
+    groups.forEach((g) => {
+      const label = g.replace('GROUP_', '');
+      const btn = document.createElement('button');
+      btn.className = 'grp-btn' + (g === activeGroup ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        activeGroup = g;
+        renderAll();
+      });
+      nav.appendChild(btn);
+    });
+  }
+
+  function renderGroupsView() {
+    const main = document.getElementById('mainContent');
+    const groups = getGroupStandings();
+
+    if (!groups.length) {
+      main.innerHTML = '<div class="empty-state">Noch keine Tabellendaten verfuegbar.<br/>Sobald die Gruppenphase beginnt, erscheinen hier die Tabellen automatisch.</div>';
+      return;
+    }
+
+    const grp = groups.find((g) => g.group === activeGroup) || groups[0];
+    const groupLabel = grp.group.replace('GROUP_', '');
+
+    let html = '<h2 class="section-title">Tabelle Gruppe ' + groupLabel + '</h2>';
+    html += '<div class="table-wrap"><table><thead><tr>';
+    html += '<th class="left">#</th><th class="left">Team</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th class="pts-col">Pkt</th>';
+    html += '</tr></thead><tbody>';
+
+    grp.table.forEach((row, i) => {
+      const cls = i < 2 ? ' class="qualified"' : '';
+      const diff = row.goalDifference;
+      const diffStr = diff > 0 ? '+' + diff : diff;
+      html += '<tr' + cls + '>';
+      html += '<td class="left" style="color:#9AA0A6; font-weight:700;">' + row.position + '</td>';
+      html += '<td class="left" style="font-weight:600;">' + teamName(row.team) + '</td>';
+      html += '<td>' + row.playedGames + '</td>';
+      html += '<td>' + row.won + '</td>';
+      html += '<td>' + row.draw + '</td>';
+      html += '<td>' + row.lost + '</td>';
+      html += '<td>' + row.goalsFor + ':' + row.goalsAgainst + '</td>';
+      html += '<td>' + diffStr + '</td>';
+      html += '<td style="font-weight:800; color:#00A859; font-size:16px;">' + row.points + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<p class="legend"><span class="legend-dot"></span> Platz 1-2 -> Achtelfinale-Runde (Round of 32)</p>';
+
+    const matches = getGroupStageMatchesForGroup(activeGroup);
+    html += '<h2 class="section-title">Spiele Gruppe ' + groupLabel + '</h2>';
+
+    if (!matches.length) {
+      html += '<div class="empty-state">Noch keine Spieltermine verfuegbar.</div>';
+    } else {
+      matches.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+      html += '<div class="match-list">';
+      matches.forEach((m) => {
+        html += renderMatchRow(m);
+      });
+      html += '</div>';
+    }
+
+    main.innerHTML = html;
+  }
+
+  function renderMatchRow(m) {
+    let html = '<div class="match-row">';
+    html += '<div class="match-meta"><span>' + formatDate(m.utcDate) + '</span>' + statusBadge(m) + '</div>';
+    html += '<span class="match-team">' + teamName(m.homeTeam) + '</span>';
+    html += scoreDisplay(m);
+    html += '<span class="match-team right">' + teamName(m.awayTeam) + '</span>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderKOView() {
+    const main = document.getElementById('mainContent');
+    const matches = getKnockoutMatches();
+
+    if (!matches.length) {
+      main.innerHTML = '<div class="empty-state">Die K.o.-Runde steht noch nicht fest.<br/>Sobald die Gruppenphase abgeschlossen ist und der Bracket feststeht, erscheinen hier automatisch alle Paarungen.</div>';
+      return;
+    }
+
+    const stages = groupByStage(matches);
+    let html = '';
+    stages.forEach(({ stage, matches: stageMatches }) => {
+      stageMatches.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+      const label = STAGE_LABELS[stage] || stage;
+      html += '<div class="ko-round-group">';
+      html += '<div class="ko-round-title">' + label + '</div>';
+      html += '<div class="match-list">';
+      stageMatches.forEach((m) => {
+        html += renderMatchRow(m);
+      });
+      html += '</div></div>';
+    });
+
+    main.innerHTML = html;
+  }
+
+  function renderAll() {
+    document.getElementById('tabGroups').classList.toggle('active', view === 'groups');
+    document.getElementById('tabKO').classList.toggle('active', view === 'ko');
+
+    renderGroupNav();
+
+    if (view === 'groups') {
+      renderGroupsView();
+    } else {
+      renderKOView();
+    }
+  }
+
+  document.getElementById('tabGroups').addEventListener('click', () => {
+    view = 'groups';
+    renderAll();
+  });
+  document.getElementById('tabKO').addEventListener('click', () => {
+    view = 'ko';
+    renderAll();
+  });
+
+  loadData();
+  setInterval(loadData, REFRESH_MS);
+</script>
+
+</body>
+</html>
