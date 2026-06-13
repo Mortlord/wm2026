@@ -307,7 +307,7 @@
 
 <div class="top-tabs">
   <button class="top-tab active" id="tabGroups">Group Stage</button>
-  <button class="top-tab" id="tabNext">Next Matches</button>
+  <button class="top-tab" id="tabNext">Matches</button>
   <button class="top-tab" id="tabKO">Knockout Stage</button>
 </div>
 
@@ -407,6 +407,17 @@
       .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
 
     return [...live, ...upcoming].slice(0, n);
+  }
+
+  // Returns the last n finished matches, across all groups and
+  // stages, sorted by kickoff time descending (most recent first).
+  function getLastMatches(n) {
+    if (!cache.matches) return [];
+
+    return cache.matches
+      .filter((m) => m.status === 'FINISHED' && m.utcDate)
+      .sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate))
+      .slice(0, n);
   }
 
   const STAGE_LABELS = {
@@ -617,19 +628,32 @@
 
   function renderNextView() {
     const main = document.getElementById('mainContent');
-    const matches = getNextMatches(3);
+    const nextMatches = getNextMatches(3);
+    const lastMatches = getLastMatches(3);
 
-    if (!matches.length) {
-      main.innerHTML = '<div class="empty-state">No upcoming matches found.</div>';
-      return;
+    let html = '';
+
+    html += '<h2 class="section-title">Next Matches</h2>';
+    if (!nextMatches.length) {
+      html += '<div class="empty-state">No upcoming matches found.</div>';
+    } else {
+      html += '<div class="match-list">';
+      nextMatches.forEach((m) => {
+        html += renderMatchRow(m, { highlight: true, showGroup: true });
+      });
+      html += '</div>';
     }
 
-    let html = '<h2 class="section-title">Next Matches</h2>';
-    html += '<div class="match-list">';
-    matches.forEach((m) => {
-      html += renderMatchRow(m, { highlight: true, showGroup: true });
-    });
-    html += '</div>';
+    html += '<h2 class="section-title">Last Results</h2>';
+    if (!lastMatches.length) {
+      html += '<div class="empty-state">No completed matches yet.</div>';
+    } else {
+      html += '<div class="match-list">';
+      lastMatches.forEach((m) => {
+        html += renderMatchRow(m, { showGroup: true });
+      });
+      html += '</div>';
+    }
 
     main.innerHTML = html;
   }
